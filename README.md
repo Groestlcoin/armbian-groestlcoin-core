@@ -1,31 +1,26 @@
 Use [Armbian](https://www.armbian.com) to (automagically) compile Linux for your
-device, compile Bitcoin Core, copy the blockchain and create an image for your SD card.
+device, compile Groestlcoin Core, copy the blockchain and create an image for your SD card.
 
 ## Ingredients
 
-* a board supported by Armbian. I suggest >= 16 GB eMMC storage and >= 2 GB of RAM
+* a board supported by Armbian. I suggest >= 8 GB eMMC storage and >= 2 GB of RAM
 * 1 microSD card >= 8 GB (only used for installation)
-* a computer (ideally >= 300 GB free space, >= 16 GB RAM)
+* a computer (ideally >= 4 GB free space, >= 2 GB RAM)
 * a microSD card reader
 
-## Download and prune blockchain
+## Download blockchain
 
-Download and install Bitcoin Core on your computer and wait for the full blockchain
+Download and install Groestlcoin Core on your computer and wait for the full blockchain
 to sync. A few hints, if you open the Preferences (`Command` + `,` on macOS):
 
 * set "Size of database cache" to 1 GB less than your RAM (though no more than 10 GB). This makes things a lot faster.
-* click Open Configuration File and enter `prune=1`
-* if you have less than 200 GB of free disk space, use`prune=...` instead, with the amount in megabytes.  Make it as large as possible, no less than 30000, but leave at least 50 GB free space. Unfortunately this does slow things down a bit. When you're done, you can reduce it all the way to 2 GB.
-* if you have an existing installation, make a copy of your bitcoin data directory (see below). Delete your wallet from the copy. If you don't have space for a fully copy, you can also put this copy on a USB drive.
-
-When it's done, quit bitcoind and change `prune=1` to `prune=550`. Start Bitcoin
-Core again, wait a minute and quit. This deleted all but the most recent blocks.
+* if you have an existing installation, make a copy of your groestlcoin data directory (see below). Delete your wallet from the copy. If you don't have space for a fully copy, you can also put this copy on a USB drive.
 
 ## Put the blockchain in a shared folder
 
-Create a `shared` folder somewhere on your computer. Create a directory `bitcoin`
+Create a `shared` folder somewhere on your computer. Create a directory `groestlcoin`
 inside of it, copy the `blocks` and `chainstate` folders to it. For testnet, create
-`bitcoin/testnet3` and copy `testnet3/blocks` and `testnet3/chainstate`.
+`groestlcoin/testnet3` and copy `testnet3/blocks` and `testnet3/chainstate`.
 
 ## Virtual Box
 
@@ -65,30 +60,30 @@ login prompt. Use the password you entered earlier.
 Click on the VM window and then select Insert Guest Editions CD from the Devices menu.
 
 The `prepare-build.sh` script in this repository takes care of cross-compiling
-Bitcoin Core (if you're not using desktop) and starting the Armbian build process.
+Groestlcoin Core (if you're not using desktop) and starting the Armbian build process.
 
 If needed, it will install the Guest Editions and ask you to reboot: `sudo reboot`.
 
 ```sh
 $ mkdir src
-$ git clone https://github.com/Sjors/armbian-bitcoin-core.git
-$ ./armbian-bitcoin-core/prepare-build.sh -h
-Usage: ./armbian-bitcoin-core/prepare-build.sh -b 32 [options] tag
+$ git clone https://github.com/groestlcoin/armbian-groestlcoin-core.git
+$ ./armbian-groestlcoin-core/prepare-build.sh -h
+Usage: ./armbian-groestlcoin-core/prepare-build.sh -b 32 [options] tag
   options:
   -h     Print this message
   -b     Bits: 32 or 64 (default)
   -g     Build GUI (QT)
   -j     Number of parallel threads to use during build (each needs ~1.5 GB RAM)
   -l [c] Add lightning: c (c-lightning)
-  -p     Use pre-built bitcoin core binaries in src/bitcoin
+  -p     Use pre-built groestlcoin core binaries in src/groestlcoin
   -c     Clean
   -u     Ubuntu release: bionic (18.04, default), xenial (16.04)
 ```
 
-To build Bitcoin Core 0.16 without GUI, for a 32 bit device and with lightning:
+To build Groestlcoin Core 2.16 without GUI, for a 32 bit device and with lightning:
 
 ```sh
-./armbian-bitcoin-core/prepare_build.sh -b 32 -l c v0.16.3
+./armbian-groestlcoin-core/prepare_build.sh -b 32 -l c 2.16.3
 ``
 
 After some initial work, it will ask you to select your board. Select
@@ -114,14 +109,14 @@ If it's been a while since you copied the blockchain, you can continue syncing i
 on the virtual machine:
 
 ```sh
-./armbian-bitcoin-core/sync-chain.sh
+./armbian-groestlcoin-core/sync-chain.sh
 ```
 
 ## Prepare bootable microSD card
 
 Use [Etcher](https://etcher.io) to put the resulting `.img` file on the SD card.
 
-The first time you login your user is `bitcoin` and your password is `bitcoin` (you'll be ask to pick a new one).
+The first time you login your user is `groestlcoin` and your password is `groestlcoin` (you'll be ask to pick a new one).
 
 If everything works, you can delete the VM if you like, but if you keep it around,
 the second time will be faster.
@@ -163,12 +158,12 @@ This powers off the device when its done. Eject the microSD card and start
 the device.
 
 The [emmc-boot service](/vendor/armbian/emmc-boot.sh) should now kick in and
-start spinning up Bitcoin, Lightning and the web server. It may take a few minutes.
+start spinning up Groestlcoin, Lightning and the web server. It may take a few minutes.
 
 ## Check
 
 ## Congrats
 
 If you pulled this off successfully, you now have the right skills to help the
-world verify that Bitcoin Core binaries are actually derived from the source code.
+world verify that Groestlcoin Core binaries are actually derived from the source code.
 Consider [contributing a Gitian build](https://github.com/bitcoin-core/docs/blob/master/gitian-building.md).

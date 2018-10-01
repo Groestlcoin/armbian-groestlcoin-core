@@ -1,6 +1,5 @@
 #!/bin/bash
-git clone https://github.com/ElementsProject/lightning.git src/lightning
-git checkout v0.6
+git clone https://github.com/groestlcoin/lightning.git src/lightning
 cd src/lightning
 ./configure
 make

@@ -7,12 +7,12 @@ if ! df -h | grep /shared ; then
   sudo mount -t vboxsf -o umask=0022,gid=$GROUP_ID,uid=$USER_ID shared ~/shared
 fi
 
-if ! which bitcoind ; then
-  if [ ! -d src/bitcoin-local ]; then
-    echo "Installing Bitcoin Core on this VM..."
-    git clone https://github.com/bitcoin/bitcoin.git src/bitcoin-local
-    pushd src/bitcoin-local
-      git checkout v0.16.3
+if ! which groestlcoind ; then
+  if [ ! -d src/groestlcoin-local ]; then
+    echo "Installing Groestlcoin Core on this VM..."
+    git clone https://github.com/groestlcoin/groestlcoin.git src/groestlcoin-local
+    pushd src/groestlcoin-local
+      git checkout 2.16.3
       # TODO: check git hash
       ./autogen.sh
       ./configure --disable-tests --disable-bench --disable-wallet --without-gui
@@ -26,24 +26,19 @@ if ! which bitcoind ; then
   fi
 fi
 
-bitcoind -daemon -prune=5000 -datadir=`pwd`/shared/bitcoin
+groestlcoind -daemon -datadir=`pwd`/shared/groestlcoin
 
 echo "Waiting for chain to catch up..."
-OPTS=-datadir=`pwd`/shared/bitcoin
+OPTS=-datadir=`pwd`/shared/groestlcoin
 set -o pipefail
 while sleep 60
 do
-  if BLOCKHEIGHT=`bitcoin-cli $OPTS getblockchaininfo | jq '.blocks'`; then
-    if bitcoin-cli $OPTS getblockchaininfo | jq -e '.initialblockdownload==false'; then
+  if BLOCKHEIGHT=`groestlcoin-cli $OPTS getblockchaininfo | jq '.blocks'`; then
+    if groestlcoin-cli $OPTS getblockchaininfo | jq -e '.initialblockdownload==false'; then
       echo "Almost caught up, wait 15 minutes..."
       sleep 900
-      BLOCKHEIGHT=`bitcoin-cli $OPTS getblockchaininfo | jq '.blocks'`
-      echo "Pruning to height $BLOCKHEIGHT..."
-      bitcoin-cli $OPTS pruneblockchain $BLOCKHEIGHT
-      bitcoin-cli $OPTS stop
-      while sleep 10
       do # Wait for shutdown
-        if [ ! -f ~/.bitcoin/bitcoind.pid ] && [ ! -f ~/.bitcoin/testnet3/bitcoind.pid ]; then
+        if [ ! -f ~/.groestlcoin/groestlcoind.pid ] && [ ! -f ~/.groestlcoin/testnet3/groestlcoind.pid ]; then
           break
         fi
       done

@@ -4,8 +4,8 @@ USE_DEPENDS=0
 GUI=0
 BITS=64
 LIGHTNING=
-BITCOIN_DATADIR=shared/bitcoin
-PREBUILT_BITCOIN_CORE=0
+GROESTLCOIN_DATADIR=shared/groestlcoin
+PREBUILT_GROESTLCOIN_CORE=0
 PARALLEL=1
 ARMBIAN_CLEAN_LEVEL=make,debs
 UBUNTU=bionic
@@ -15,17 +15,17 @@ LOCALE=en_US
 while getopts ":hcgdl:b:pj:u:t:a:" opt; do
   case $opt in
     h)
-      echo "Usage: ./armbian-bitcoin-core/prepare-build.sh -b 32 [options] tag"
+      echo "Usage: ./armbian-groestlcoin-core/prepare-build.sh -b 32 [options] tag"
       echo "  options:"
       echo "  -h     Print this message"
       echo "  -b     Bits: 32 or 64 (default)"
       echo "  -g     Build GUI (QT)"
       echo "  -j     Number of parallel threads to use during build (each needs ~1.5 GB RAM)"
       # echo "  -t   Use testnet" # TODO
-      # echo "  -..." override bitcoin datadir
+      # echo "  -..." override groestlcoin datadir
       # echo "  -d     Use depends"
       echo "  -l [c] Add lightning: c (c-lightning)"
-      echo "  -p     Use pre-built bitcoin core binaries in src/bitcoin"
+      echo "  -p     Use pre-built groestlcoin core binaries in src/groestlcoin"
       echo "  -c     Clean"
       echo "  -u     Ubuntu release: bionic (18.04, default), xenial (16.04)"
       echo "  -t     Set timezone (e.g. \"Europe/Amsterdam\", default: UTC)"
@@ -57,18 +57,18 @@ while getopts ":hcgdl:b:pj:u:t:a:" opt; do
       fi
       ;;
     p)
-      PREBUILT_BITCOIN_CORE=1
+      PREBUILT_GROESTLCOIN_CORE=1
       ;;
     j)
       PARALLEL=$OPTARG
       ;;
     c)
-      if [ -d src/bitcoin ]; then
-      echo "Cleaning bitcoin dir..."
-        pushd src/bitcoin
+      if [ -d src/groestlcoin ]; then
+      echo "Cleaning groestlcoin dir..."
+        pushd src/groestlcoin
           make distclean
           pushd depends
-            # v0.17 will have "make clean-all"
+            # v2.17.0 will have "make clean-all"
             rm -rf built sources work x86_64* i686* mips* arm* aarch64*
           popd
         popd
@@ -107,9 +107,9 @@ done
 
 shift $((OPTIND-1))
 
-if [ "$PREBUILT_BITCOIN_CORE" -eq "0" ]; then
+if [ "$PREBUILT_GROESTLCOIN_CORE" -eq "0" ]; then
   if [ -z "$1" ]; then
-    echo "Specify release tag, e.g.: .previous_release v0.15.1"
+    echo "Specify release tag, e.g.: .previous_release 2.16.0"
     exit 1
   fi
 fi
@@ -145,18 +145,18 @@ if ! df -h | grep /shared ; then
   sudo mount -t vboxsf -o umask=0022,gid=$GROUP_ID,uid=$USER_ID shared ~/shared
 fi
 
-# TODO: check ~/shared/bitcoin/blocks and ~/shared/bitcoin/chainstate exist
+# TODO: check ~/shared/groestlcoin/blocks and ~/shared/groestlcoin/chainstate exist
 
 # Can't cross compile with GUI, so compilation happens in customize-image.sh
 # https://github.com/bitcoin/bitcoin/issues/13495.
 # if [ "$GUI" -eq "0" ]; then
 
-if [ "$PREBUILT_BITCOIN_CORE" -eq "0" ]; then
+if [ "$PREBUILT_GROESTLCOIN_CORE" -eq "0" ]; then
   if [ "$GUI" -eq "0" ]; then
-    if [ ! -d src/bitcoin ]; then
-      git clone https://github.com/bitcoin/bitcoin.git src/bitcoin
+    if [ ! -d src/groestlcoin ]; then
+      git clone https://github.com/groestlcoin/groestlcoin.git src/groestlcoin
     fi
-    pushd src/bitcoin
+    pushd src/groestlcoin
       git reset --hard
       git checkout $1
       pushd depends
@@ -178,13 +178,13 @@ if [ "$PREBUILT_BITCOIN_CORE" -eq "0" ]; then
 fi
 
 if [ "$GUI" -eq "0" ]; then
-  echo "Check if bitcoin binaries are present..."
-  FILES="bitcoin-cli bitcoind"
+  echo "Check if groestlcoin binaries are present..."
+  FILES="groestlcoin-cli groestlcoind"
 
   for f in $FILES;
   do
-    if [ ! -f src/bitcoin/src/$f ]; then
-      echo "Could not find $f in src/bitcoin/src"
+    if [ ! -f src/groestlcoin/src/$f ]; then
+      echo "Could not find $f in src/groestlcoin/src"
       exit 1
     fi
   done
@@ -202,11 +202,11 @@ if [ ! -d build ]; then
   mkdir -p build/userpatches/overlay/scripts
 fi
 
-cp armbian-bitcoin-core/customize-image.sh build/userpatches
-cp armbian-bitcoin-core/lib.config build/userpatches
-cp armbian-bitcoin-core/build-c-lightning.sh build/userpatches/overlay/scripts
-cp armbian-bitcoin-core/first_boot.service build/userpatches/overlay/scripts
-cp armbian-bitcoin-core/first_boot_desktop.service build/userpatches/overlay/scripts
+cp armbian-groestlcoin-core/customize-image.sh build/userpatches
+cp armbian-groestlcoin-core/lib.config build/userpatches
+cp armbian-groestlcoin-core/build-c-lightning.sh build/userpatches/overlay/scripts
+cp armbian-groestlcoin-core/first_boot.service build/userpatches/overlay/scripts
+cp armbian-groestlcoin-core/first_boot_desktop.service build/userpatches/overlay/scripts
 
 sed -i "s:UTC:$TIMEZONE:" build/userpatches/overlay/scripts/first_boot.service
 sed -i "s/en_US/$LOCALE/" build/userpatches/overlay/scripts/first_boot.service
@@ -214,10 +214,10 @@ sed -i "s/en_US/$LOCALE/" build/userpatches/overlay/scripts/first_boot.service
 if [ "$GUI" -eq "1" ]; then
   # Use Rocket wallapper from https://flic.kr/p/221H7xu, get rid of second workspsace
   # and use slightly larger icon:
-  cp armbian-bitcoin-core/rocket.jpg build/userpatches/overlay
-  cp armbian-bitcoin-core/xfce4-desktop.xml build/userpatches/overlay
-  cp armbian-bitcoin-core/lightdm-gtk-greeter.conf build/userpatches/overlay
-  cp armbian-bitcoin-core/keyboard.desktop build/userpatches/overlay
+  cp armbian-groestlcoin-core/rocket.jpg build/userpatches/overlay
+  cp armbian-groestlcoin-core/xfce4-desktop.xml build/userpatches/overlay
+  cp armbian-groestlcoin-core/lightdm-gtk-greeter.conf build/userpatches/overlay
+  cp armbian-groestlcoin-core/keyboard.desktop build/userpatches/overlay
 fi
 
 if [ "$LIGHTNING" == "c" ]; then
@@ -226,29 +226,29 @@ if [ "$LIGHTNING" == "c" ]; then
   echo "./tmp/overlay/scripts/build-c-lightning.sh" >> build/userpatches/customize-image.sh
 fi
 
-# Copy bitcoin configuration
-rm -rf build/userpatches/overlay/bitcoin
-mkdir -p build/userpatches/overlay/bitcoin
-cp armbian-bitcoin-core/bitcoin.conf build/userpatches/overlay/bitcoin
-echo "lang=$LOCALE" >> build/userpatches/overlay/bitcoin/bitcoin.conf
+# Copy groestlcoin configuration
+rm -rf build/userpatches/overlay/groestlcoin
+mkdir -p build/userpatches/overlay/groestlcoin
+cp armbian-groestlcoin-core/groestlcoin.conf build/userpatches/overlay/groestlcoin
+echo "lang=$LOCALE" >> build/userpatches/overlay/groestlcoin/groestlcoin.conf
 
-# Copy bitcoind to the right place, if cross compiled or if pre-built:
+# Copy groestlcoind to the right place, if cross compiled or if pre-built:
 
 if [ "$GUI" -eq "0" ]; then
-  cp src/bitcoin/src/bitcoind src/bitcoin/src/bitcoin-cli build/userpatches/overlay/bin
-elif [ "$PREBUILT_BITCOIN_CORE" -eq "1" ]; then
-  cp src/bitcoin/src/bitcoind src/bitcoin/src/bitcoin-cli build/userpatches/overlay/bin
+  cp src/groestlcoin/src/groestlcoind src/groestlcoin/src/groestlcoin-cli build/userpatches/overlay/bin
+elif [ "$PREBUILT_GROESTLCOIN_CORE" -eq "1" ]; then
+  cp src/groestlcoin/src/groestlcoind src/groestlcoin/src/groestlcoin-cli build/userpatches/overlay/bin
   if [ "$GUI" -eq "1" ]; then
-    cp src/bitcoin/src/qt/bitcoin-qt build/userpatches/overlay/bin
+    cp src/groestlcoin/src/qt/groestlcoin-qt build/userpatches/overlay/bin
   fi
 fi
 
 # Copy block index and chainstate:
-# mkdir build/userpatches/overlay/bitcoin/testnet3
-cp -r $BITCOIN_DATADIR/blocks build/userpatches/overlay/bitcoin
-# cp -r $BITCOIN_DATADIR/testnet3/blocks build/userpatches/overlay/bitcoin/testnet3
-cp -r $BITCOIN_DATADIR/chainstate build/userpatches/overlay/bitcoin
-# cp -r $BITCOIN_DATADIR/testnet3/chainstate build/userpatches/overlay/bitcoin/testnet3
+# mkdir build/userpatches/overlay/groestlcoin/testnet3
+cp -r $GROESTLCOIN_DATADIR/blocks build/userpatches/overlay/groestlcoin
+# cp -r $GROESTLCOIN_DATADIR/testnet3/blocks build/userpatches/overlay/groestlcoin/testnet3
+cp -r $GROESTLCOIN_DATADIR/chainstate build/userpatches/overlay/groestlcoin
+# cp -r $GROESTLCOIN_DATADIR/testnet3/chainstate build/userpatches/overlay/groestlcoin/testnet3
 
 pushd build
   if [ "$GUI" -eq "0" ]; then
