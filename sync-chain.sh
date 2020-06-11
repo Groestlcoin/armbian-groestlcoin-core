@@ -12,7 +12,7 @@ if ! which groestlcoind ; then
     echo "Installing Groestlcoin Core on this VM..."
     git clone https://github.com/groestlcoin/groestlcoin.git src/groestlcoin-local
     pushd src/groestlcoin-local
-      git checkout 2.16.3
+      git checkout 2.19.1
       # TODO: check git hash
       ./autogen.sh
       ./configure --disable-tests --disable-bench --disable-wallet --without-gui

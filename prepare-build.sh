@@ -27,7 +27,7 @@ while getopts ":hcgdl:b:pj:u:t:a:" opt; do
       echo "  -l [c] Add lightning: c (c-lightning)"
       echo "  -p     Use pre-built groestlcoin core binaries in src/groestlcoin"
       echo "  -c     Clean"
-      echo "  -u     Ubuntu release: bionic (18.04, default), xenial (16.04)"
+      echo "  -u     Ubuntu release: bionic (18.04, default)"
       echo "  -t     Set timezone (e.g. \"Europe/Amsterdam\", default: UTC)"
       echo "  -a     Set locale (default: en_US)"
       exit 0
@@ -68,8 +68,7 @@ while getopts ":hcgdl:b:pj:u:t:a:" opt; do
         pushd src/groestlcoin
           make distclean
           pushd depends
-            # v2.17.0 will have "make clean-all"
-            rm -rf built sources work x86_64* i686* mips* arm* aarch64*
+            make clean-all
           popd
         popd
       fi
@@ -81,10 +80,8 @@ while getopts ":hcgdl:b:pj:u:t:a:" opt; do
     u)
       if [ $OPTARG == "bionic" ]; then
         UBUNTU=bionic
-      elif [ $OPTARG == "xenial" ]; then
-        UBUNTU=xenial
       else
-        echo "Ubuntu should be '-u bionic' or '-u xenial'"
+        echo "Ubuntu should be '-u bionic'"
         exit 1
       fi
       ;;
@@ -109,14 +106,14 @@ shift $((OPTIND-1))
 
 if [ "$PREBUILT_GROESTLCOIN_CORE" -eq "0" ]; then
   if [ -z "$1" ]; then
-    echo "Specify release tag, e.g.: .previous_release 2.16.0"
+    echo "Specify release tag, e.g.: .previous_release 2.19.1"
     exit 1
   fi
 fi
 
 # TODO: skip stuff if it's already done
 
-echo "If asked, tnter your sudo password in order to upgrade your system, install dependencies and mount shared folder..."
+echo "If asked, enter your sudo password in order to upgrade your system, install dependencies and mount shared folder..."
 sudo apt-get update
 
 echo "Installing dependencies..."
@@ -147,34 +144,36 @@ fi
 
 # TODO: check ~/shared/groestlcoin/blocks and ~/shared/groestlcoin/chainstate exist
 
-# Can't cross compile with GUI, so compilation happens in customize-image.sh
-# https://github.com/bitcoin/bitcoin/issues/13495.
-# if [ "$GUI" -eq "0" ]; then
-
 if [ "$PREBUILT_GROESTLCOIN_CORE" -eq "0" ]; then
-  if [ "$GUI" -eq "0" ]; then
-    if [ ! -d src/groestlcoin ]; then
-      git clone https://github.com/groestlcoin/groestlcoin.git src/groestlcoin
-    fi
-    pushd src/groestlcoin
-      git reset --hard
-      git checkout $1
-      pushd depends
-        if [ "$BITS" -eq "32" ]; then
+  if [ ! -d src/groestlcoin ]; then
+    git clone https://github.com/groestlcoin/groestlcoin.git src/groestlcoin
+  fi
+  pushd src/groestlcoin
+    git reset --hard
+    git checkout $1
+    pushd depends
+      if [ "$BITS" -eq "32" ]; then
+        if [ "$GUI" -eq "0" ]; then
           make HOST=arm-linux-gnueabihf NO_QT=1 -j$PARALLEL
         else
-          make HOST=aarch64-linux-gnu NO_QT=1 -j$PARALLEL
+          make HOST=arm-linux-gnueabihf -j$PARALLEL
         fi
-      popd
-      ./autogen.sh
-      if [ "$BITS" -eq "32" ]; then
-        ./configure $CONFIG_FLAGS --prefix=$PWD/depends/arm-linux-gnueabihf
       else
-        ./configure $CONFIG_FLAGS --prefix=$PWD/depends/aarch64-linux-gnu
+        if [ "$GUI" -eq "0" ]; then
+          make HOST=aarch64-linux-gnu NO_QT=1 -j$PARALLEL
+        else
+          make HOST=aarch64-linux-gnu -j$PARALLEL
+        fi
       fi
-      make -j$PARALLEL
     popd
-  fi
+    ./autogen.sh
+    if [ "$BITS" -eq "32" ]; then
+      ./configure $CONFIG_FLAGS --prefix=$PWD/depends/arm-linux-gnueabihf
+    else
+      ./configure $CONFIG_FLAGS --prefix=$PWD/depends/aarch64-linux-gnu
+    fi
+    make -j$PARALLEL
+  popd
 fi
 
 if [ "$GUI" -eq "0" ]; then
@@ -232,15 +231,10 @@ mkdir -p build/userpatches/overlay/groestlcoin
 cp armbian-groestlcoin-core/groestlcoin.conf build/userpatches/overlay/groestlcoin
 echo "lang=$LOCALE" >> build/userpatches/overlay/groestlcoin/groestlcoin.conf
 
-# Copy groestlcoind to the right place, if cross compiled or if pre-built:
-
-if [ "$GUI" -eq "0" ]; then
-  cp src/groestlcoin/src/groestlcoind src/groestlcoin/src/groestlcoin-cli build/userpatches/overlay/bin
-elif [ "$PREBUILT_GROESTLCOIN_CORE" -eq "1" ]; then
-  cp src/groestlcoin/src/groestlcoind src/groestlcoin/src/groestlcoin-cli build/userpatches/overlay/bin
-  if [ "$GUI" -eq "1" ]; then
-    cp src/groestlcoin/src/qt/groestlcoin-qt build/userpatches/overlay/bin
-  fi
+# Copy binaries to the right place:
+cp src/groestlcoin/src/groestlcoind src/groestlcoin/src/groestlcoin-cli build/userpatches/overlay/bin
+if [ "$GUI" -eq "1" ]; then
+  cp src/groestlcoin/src/qt/groestlcoin-qt build/userpatches/overlay/bin
 fi
 
 # Copy block index and chainstate:

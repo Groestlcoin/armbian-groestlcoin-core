@@ -27,40 +27,19 @@ EOF
 
 # TODO copy ssh pubkey if found, disable password SSH login
 
-# Clone Groestlcoin Core repo for graphics assets and (if needed) compilation:
+# Clone Groestlcoin Core repo for graphics assets:
 sudo -s <<'EOF'
   git clone https://github.com/groestlcoin/groestlcoin.git /usr/local/src/groestlcoin
   cd /usr/local/src/groestlcoin
-  git checkout 2.16.3
+  git checkout 2.19.1
   # TODO: check signature commit hash
+
+  git clone https://github.com/Groestlcoin/packaging.git /usr/local/src/packaging
 EOF
 
+sudo cp /tmp/overlay/bin/groestlcoin* /usr/local/bin
 if [ "$BUILD_DESKTOP" == "yes" ]; then
-  sudo -s <<'EOF'
-    sudo add-apt-repository ppa:groestlcoin/groestlcoin
-    sudo apt-get update
-    sudo apt-get install -y libdb5.3-dev libdb5.3++-dev
-    # apt enters a confused state, perform incantation and try again:
-    sudo apt-get -y -f install
-    sudo apt-get install -y libdb5.3-dev libdb5.3++-dev
-EOF
-fi
-
-if [ -f /tmp/overlay/bin/groestlcoind ]; then
-  sudo cp /tmp/overlay/bin/groestlcoin* /usr/local/bin
-  if [ -f /tmp/overlay/bin/groestlcoin-qt ] && [ "$BUILD_DESKTOP" == "yes" ]; then
-    sudo cp /tmp/overlay/bin/groestlcoin-qt /usr/local/bin
-  fi
-elif [ "$BUILD_DESKTOP" == "yes" ]; then
-  sudo -s <<'EOF'
-    cd /usr/local/src/groestlcoin
-    ./autogen.sh
-    if ! ./configure --disable-tests --disable-bench --with-qrencode --with-gui=qt5 ; then
-      exit 1
-    fi
-    make
-    make install
-EOF
+  sudo cp /tmp/overlay/bin/groestlcoin-qt /usr/local/bin
 fi
 
 # Configure Groestlcoin Core:
@@ -121,13 +100,13 @@ if [ "$BUILD_DESKTOP" == "yes" ]; then
     cp /tmp/overlay/lightdm-gtk-greeter.conf /etc/lightdm/lightdm-gtk-greeter.conf
     mkdir -p /home/groestlcoin/Desktop
     mkdir -p /home/groestlcoin/.config/autostart
-    cp /usr/local/src/groestlcoin/contrib/debian/bitcoin-qt.desktop /home/groestlcoin/Desktop
-    chmod +x /home/groestlcoin/Desktop/bitcoin-qt.desktop
+    cp /usr/local/src/packaging/debian/groestlcoin-qt.desktop /home/groestlcoin/Desktop
+    chmod +x /home/groestlcoin/Desktop/groestlcoin-qt.desktop
     cp /tmp/overlay/keyboard.desktop /home/groestlcoin/.config/autostart
     chown -R groestlcoin:groestlcoin /home/groestlcoin/Desktop
     chown -R groestlcoin:groestlcoin /home/groestlcoin/.config
-    cp /usr/local/src/groestlcoin/share/pixmaps/bitcoin128.png /usr/share/pixmaps
-    cp /usr/local/src/groestlcoin/share/pixmaps/bitcoin256.png /usr/share/pixmaps
+    cp /usr/local/src/groestlcoin/share/pixmaps/groestlcoin128.png /usr/share/pixmaps
+    cp /usr/local/src/groestlcoin/share/pixmaps/groestlcoin256.png /usr/share/pixmaps
     cp /tmp/overlay/scripts/first_boot_desktop.service /etc/systemd/system
     systemctl enable first_boot_desktop.service
     systemctl set-default graphical.target

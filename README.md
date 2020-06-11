@@ -80,10 +80,10 @@ Usage: ./armbian-groestlcoin-core/prepare-build.sh -b 32 [options] tag
   -u     Ubuntu release: bionic (18.04, default), xenial (16.04)
 ```
 
-To build Groestlcoin Core 2.16 without GUI, for a 32 bit device and with lightning:
+To build Groestlcoin Core 2.19.1 without GUI, for a 32 bit device and with lightning:
 
 ```sh
-./armbian-groestlcoin-core/prepare_build.sh -b 32 -l c 2.16.3
+./armbian-groestlcoin-core/prepare_build.sh -b 32 -l c 2.19.1
 ``
 
 After some initial work, it will ask you to select your board. Select
